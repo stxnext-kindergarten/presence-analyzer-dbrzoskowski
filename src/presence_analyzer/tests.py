@@ -7,7 +7,9 @@ import json
 import datetime
 import unittest
 
-import main, views, utils
+import main
+import views
+import utils
 
 
 TEST_DATA_CSV = os.path.join(
@@ -74,9 +76,6 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertIsInstance(data, list)
 
 
-
-
-
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
     """
     Utility functions tests.
@@ -87,6 +86,7 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Before each test, set up a environment.
         """
         main.app.config.update({'DATA_CSV': TEST_DATA_CSV})
+        self.client = main.app.test_client()
 
     def tearDown(self):
         """
@@ -114,15 +114,19 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test group by weekend
         """
         sample_date = datetime.date(2013, 9, 12)
-        start_date = datetime.time(10, 48, 46)
-        end_date = datetime.time(17, 23, 51)
-        data = utils.group_by_weekday({sample_date: {'end': end_date,
-                              'start': start_date}})
+        d = {sample_date: {'end': datetime.time(23, 23, 51),
+                           'start': datetime.time(10, 48, 46)}}
+        data = utils.group_by_weekday(d)
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 7)
-        self.assertTrue(datetime.datetime.strptime(str(sample_date), '%Y-%m-%d'))
-        #self.assertLess(data[0][sample_date]['end'].hour, 23) - sprawdzanie godziny
-
+        self.assertTrue(datetime.datetime.strptime(
+            str(sample_date), '%Y-%m-%d'))
+        self.assertLess(d[sample_date]['end'].hour, 24)
+        self.assertLess(d[sample_date]['end'].minute, 60)
+        self.assertLess(d[sample_date]['end'].second, 60)
+        self.assertLess(d[sample_date]['start'].hour, 24)
+        self.assertLess(d[sample_date]['start'].minute, 60)
+        self.assertLess(d[sample_date]['start'].second, 60)
 
     def test_seconds_since_midnight(self):
         sample_date = datetime.time(23, 59, 59)
@@ -144,7 +148,12 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertLess(start_date, end_date)
 
     def test_mean(self):
-        pass 
+        lista = [-33031, 32113, 32113, 32113, 54154, 32112, 31123]
+        date = utils.mean(lista)
+        self.assertIsInstance(date, float)
+        self.assertNotEqual(lista, [])
+        self.assertGreater(date, -1)
+
 
 def suite():
     """

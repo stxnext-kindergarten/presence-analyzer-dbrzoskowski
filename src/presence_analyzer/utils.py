@@ -75,7 +75,6 @@ def group_by_weekday(items):
     """
     Groups presence entries by weekday.
     """
-    # import ipdb; ipdb.set_trace()
     result = [[], [], [], [], [], [], []]  # one list for every day in week
     for date in items:
         start = items[date]['start']
@@ -88,7 +87,6 @@ def seconds_since_midnight(time):
     """
     Calculates amount of seconds since midnight.
     """
-    #import ipdb; ipdb.set_trace()
     return time.hour * 3600 + time.minute * 60 + time.second
 
 
@@ -103,5 +101,4 @@ def mean(items):
     """
     Calculates arithmetic mean. Returns zero for empty lists.
     """
-    # import ipdb; ipdb.set_trace()  
     return float(sum(items)) / len(items) if len(items) > 0 else 0
