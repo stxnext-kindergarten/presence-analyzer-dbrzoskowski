@@ -2,14 +2,15 @@
 """
 Presence analyzer unit tests.
 """
-import os.path
-import json
+from __future__ import unicode_literals
 import datetime
+import json
+import os.path
 import unittest
 
 import main
-import views
 import utils
+import views
 
 
 TEST_DATA_CSV = os.path.join(
@@ -19,6 +20,7 @@ TEST_DATA_CSV = os.path.join(
 
 # pylint: disable=maybe-no-member, too-many-public-methods
 class PresenceAnalyzerViewsTestCase(unittest.TestCase):
+
     """
     Views tests.
     """
@@ -53,30 +55,52 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.content_type, 'application/json')
         data = json.loads(resp.data)
         self.assertEqual(len(data), 2)
-        self.assertDictEqual(data[0], {u'user_id': 10, u'name': u'User 10'})
+        self.assertDictEqual(data[0], {'user_id': 10, 'name': 'User 10'})
 
     def test_mean_time_weekend(self):
         """
-        Test mean time weekend
+        Test mean time weekend.
         """
         resp = self.client.get('/api/v1/mean_time_weekday/10')
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.data)
-        self.assertEqual(len(data), 7)
-        self.assertIsInstance(data, list)
+        expected_list = [
+            ['Mon', 0],
+            ['Tue', 30047.0],
+            ['Wed', 24465.0],
+            ['Thu', 23705.0],
+            ['Fri', 0],
+            ['Sat', 0],
+            ['Sun', 0]
+        ]
+        self.assertEqual(data, expected_list)
+        self.assertEqual(data[0], expected_list[0])
+        self.assertEqual(data[-1], expected_list[-1])
 
     def test_presence_weekday_view(self):
         """
-        Test presence weekday
+        Test presence weekday.
         """
         resp = self.client.get('/api/v1/presence_weekday/11')
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.data)
-        self.assertEqual(len(data), 8)
-        self.assertIsInstance(data, list)
+        expected_list = [
+            ['Weekday', 'Presence (s)'],
+            ['Mon', 24123],
+            ['Tue', 16564],
+            ['Wed', 25321],
+            ['Thu', 45968],
+            ['Fri', 6426],
+            ['Sat', 0],
+            ['Sun', 0]
+        ]
+        self.assertEqual(data, expected_list)
+        self.assertEqual(data[0], expected_list[0])
+        self.assertEqual(data[-1], expected_list[-1])
 
 
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
+
     """
     Utility functions tests.
     """
@@ -86,7 +110,6 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Before each test, set up a environment.
         """
         main.app.config.update({'DATA_CSV': TEST_DATA_CSV})
-        self.client = main.app.test_client()
 
     def tearDown(self):
         """
@@ -111,48 +134,91 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
 
     def test_group_by_weekday(self):
         """
-        Test group by weekend
+        Test group by weekend.
         """
-        sample_date = datetime.date(2013, 9, 12)
-        d = {sample_date: {'end': datetime.time(23, 23, 51),
-                           'start': datetime.time(10, 48, 46)}}
-        data = utils.group_by_weekday(d)
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 7)
-        self.assertTrue(datetime.datetime.strptime(
-            str(sample_date), '%Y-%m-%d'))
-        self.assertLess(d[sample_date]['end'].hour, 24)
-        self.assertLess(d[sample_date]['end'].minute, 60)
-        self.assertLess(d[sample_date]['end'].second, 60)
-        self.assertLess(d[sample_date]['start'].hour, 24)
-        self.assertLess(d[sample_date]['start'].minute, 60)
-        self.assertLess(d[sample_date]['start'].second, 60)
+        excepted_result = [[], [0], [17088], [10800], [], [], []]
+        days = {
+            datetime.date(2013, 9, 10): {
+                'end': datetime.time(0, 0, 0),
+                'start': datetime.time(0, 0, 0),
+            },
+            datetime.date(2013, 9, 11): {
+                'end': datetime.time(17, 6, 28),
+                'start': datetime.time(12, 21, 40),
+            },
+            datetime.date(2013, 9, 12): {
+                'end': datetime.time(23, 59, 59),
+                'start': datetime.time(20, 59, 59),
+            }
+        }
+        data = utils.group_by_weekday(days)
+        self.assertEqual(data, excepted_result)
+        self.assertTrue(
+            datetime.datetime.strptime(
+                str(datetime.date(2013, 9, 12)), '%Y-%m-%d'
+            )
+        )
 
     def test_seconds_since_midnight(self):
-        sample_date = datetime.time(23, 59, 59)
-        date = utils.seconds_since_midnight(sample_date)
-        self.assertIsInstance(sample_date.hour, int)
-        self.assertIsInstance(sample_date.minute, int)
-        self.assertIsInstance(sample_date.second, int)
+        """
+        Test calculates amount of seconds since midnight.
+        """
+        sample_date = datetime.time(18, 17, 4)
+        date = (
+            utils.seconds_since_midnight(
+                datetime.time(23, 11, 0)
+            ),
+            utils.seconds_since_midnight(
+                datetime.time(0, 0, 0)
+            ),
+            utils.seconds_since_midnight(
+                datetime.time(5, 54, 43)
+            ),
+        )
         self.assertLess(sample_date.hour, 24)
         self.assertGreater(sample_date.hour, -1)
         self.assertLess(sample_date.minute, 60)
         self.assertGreater(sample_date.minute, -1)
         self.assertLess(sample_date.second, 60)
         self.assertGreater(sample_date.second, -1)
+        self.assertEqual(date[0], 83460)
+        self.assertEqual(date[1], 0)
+        self.assertEqual(date[2], 21283)
 
     def test_interval(self):
-        start_date = datetime.time(10, 10, 10)
-        end_date = datetime.time(12, 10, 10)
-        date = utils.interval(start_date, end_date)
-        self.assertLess(start_date, end_date)
+        """
+        Test interval between two datetime.time objects.
+        """
+        date = (
+            utils.interval(
+                datetime.time(8, 31, 6),
+                datetime.time(15, 15, 27),
+            ),
+            utils.interval(
+                datetime.time(0, 0, 0),
+                datetime.time(0, 0, 0),
+            ),
+            utils.interval(
+                datetime.time(5, 30, 5),
+                datetime.time(10, 15, 53),
+            ),
+        )
+        self.assertEqual(date[0], 24261)
+        self.assertEqual(date[1], 0)
+        self.assertEqual(date[2], 17148)
 
     def test_mean(self):
-        lista = [-33031, 32113, 32113, 32113, 54154, 32112, 31123]
-        date = utils.mean(lista)
-        self.assertIsInstance(date, float)
-        self.assertNotEqual(lista, [])
-        self.assertGreater(date, -1)
+        """
+        Test calculates arithmetic mean.
+        """
+        date = (
+            utils.mean([24261, 32533, 34323, 32453, 54154, 32412, 31123]),
+            utils.mean([0]),
+            utils.mean([-12332, -3213, -3213, -32131, -32131])
+        )
+        self.assertEqual(date[0], 34465.57142857143)
+        self.assertEqual(date[1], 0)
+        self.assertEqual(date[2], -16604)
 
 
 def suite():
