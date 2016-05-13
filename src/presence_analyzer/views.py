@@ -3,11 +3,11 @@
 Defines views.
 """
 
-import calendar
 from flask import redirect, abort
+import calendar
 
-from presence_analyzer.main import app
-from presence_analyzer.utils import jsonify, get_data, mean, group_by_weekday
+from main import app
+from utils import jsonify, get_data, mean, group_by_weekday
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -50,7 +50,6 @@ def mean_time_weekday_view(user_id):
         (calendar.day_abbr[weekday], mean(intervals))
         for weekday, intervals in enumerate(weekdays)
     ]
-
     return result
 
 
