@@ -4,6 +4,8 @@ Helper functions used in views.
 """
 
 import csv
+import logging
+
 from json import dumps
 from functools import wraps
 from datetime import datetime
@@ -12,7 +14,7 @@ from flask import Response
 
 from main import app
 
-import logging
+
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
@@ -118,3 +120,4 @@ def mean(items):
     Calculates arithmetic mean. Returns zero for empty lists.
     """
     return float(sum(items)) / len(items) if len(items) > 0 else 0
+
