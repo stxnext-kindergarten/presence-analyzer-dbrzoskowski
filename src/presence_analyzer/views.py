@@ -3,10 +3,14 @@
 Defines views.
 """
 
-from flask import abort, make_response, redirect, render_template
-from jinja2.exceptions import TemplateNotFound
 import calendar
 import datetime
+import logging
+
+from flask import abort, make_response, redirect, render_template
+from flask.ext.mako import render_template
+from jinja2.exceptions import TemplateNotFound
+
 from main import app
 from utils import (
     get_data,
@@ -17,7 +21,7 @@ from utils import (
     seconds_since_midnight
 )
 
-import logging
+
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
@@ -115,3 +119,4 @@ def presence_start_end_view(user_id):
         for weekday, intervals in enumerate(weekdays)
     ]
     return result
+
