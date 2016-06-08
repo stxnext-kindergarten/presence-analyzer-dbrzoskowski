@@ -18,7 +18,8 @@ from utils import (
     group_by_weekday,
     jsonify,
     mean,
-    seconds_since_midnight
+    seconds_since_midnight,
+    xml_data_parser
 )
 
 
@@ -59,7 +60,24 @@ def users_view():
     ]
 
 
-@app.route('/api/v1/mean_time_weekday/<int:user_id>', methods=['GET'])
+@app.route('/api/v2/users', methods=['GET'])
+@jsonify
+def xml_data_view():
+    """
+    Loading data from xml_data_parser for users.
+    """
+    data = xml_data_parser()
+    return [
+        {'user_id': i,
+            'name': data[i]['name'],
+            'avatar': data[i]['avatar']
+        }
+        for i in data
+    ]
+
+
+
+@app.route('/api/v2/mean_time_weekday/<int:user_id>', methods=['GET'])
 @jsonify
 def mean_time_weekday_view(user_id):
     """
@@ -68,7 +86,7 @@ def mean_time_weekday_view(user_id):
     data = get_data()
     if user_id not in data:
         log.debug('User %s not found!', user_id)
-        abort(404)
+        return []
 
     weekdays = group_by_weekday(data[user_id])
     result = [
@@ -78,7 +96,7 @@ def mean_time_weekday_view(user_id):
     return result
 
 
-@app.route('/api/v1/presence_weekday/<int:user_id>', methods=['GET'])
+@app.route('/api/v2/presence_weekday/<int:user_id>', methods=['GET'])
 @jsonify
 def presence_weekday_view(user_id):
     """
@@ -87,19 +105,18 @@ def presence_weekday_view(user_id):
     data = get_data()
     if user_id not in data:
         log.debug('User %s not found!', user_id)
-        abort(404)
+        return []
 
     weekdays = group_by_weekday(data[user_id])
     result = [
         (calendar.day_abbr[weekday], sum(intervals))
         for weekday, intervals in enumerate(weekdays)
     ]
-
     result.insert(0, ('Weekday', 'Presence (s)'))
     return result
 
 
-@app.route('/api/v1/presence_start_end/<int:user_id>', methods=['GET'])
+@app.route('/api/v2/presence_start_end/<int:user_id>', methods=['GET'])
 @jsonify
 def presence_start_end_view(user_id):
     """
@@ -108,7 +125,7 @@ def presence_start_end_view(user_id):
     data = get_data()
     if user_id not in data:
         log.debug('User %s not found!', user_id)
-        abort(404)
+        return []
 
     weekdays = group_by_weekday(data[user_id])
     start_end_weekdays = group_by_start_end(data[user_id])
