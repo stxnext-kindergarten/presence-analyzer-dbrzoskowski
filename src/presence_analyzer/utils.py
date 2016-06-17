@@ -6,6 +6,8 @@ Helper functions used in views.
 import csv
 import logging
 import os
+import threading
+import time
 import urllib2
 
 from datetime import datetime
@@ -19,6 +21,39 @@ from main import app
 
 
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
+CACHE = {}
+
+
+def lock(function):
+    """
+    Lock function decorator.
+    """
+    locked = threading.Lock()
+    @wraps(function)
+    def locking(*args, **kwargs):
+        with locked:
+            result = function(*args, **kwargs)
+        return result
+    return locking
+
+
+def cache(cache_time):
+    """
+    Cache function decorator with cache time as argument.
+    """
+    def _cache(function):
+        def __cache(*args, **kwargs):
+            name = function.__name__
+            if name in CACHE:
+                if CACHE[name]['time'] < (time.time()) + cache_time:
+                    return CACHE[name]['data']
+            CACHE[name] = {
+                'data': function(*args, **kwargs),
+                'time': time.time()
+            }
+            return CACHE[name]['data']
+        return __cache
+    return _cache
 
 
 def jsonify(function):
@@ -37,6 +72,8 @@ def jsonify(function):
     return inner
 
 
+@lock
+@cache(600)
 def get_data():
     """
     Extracts presence data from CSV file and groups it by user_id.

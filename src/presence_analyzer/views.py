@@ -76,7 +76,6 @@ def xml_data_view():
     ]
 
 
-
 @app.route('/api/v2/mean_time_weekday/<int:user_id>', methods=['GET'])
 @jsonify
 def mean_time_weekday_view(user_id):
