@@ -5,12 +5,15 @@ Helper functions used in views.
 
 import csv
 import logging
+import os
+import urllib2
 
-from json import dumps
-from functools import wraps
 from datetime import datetime
+from functools import wraps
+from json import dumps
 
 from flask import Response
+from lxml import etree
 
 from main import app
 
@@ -59,7 +62,6 @@ def get_data():
             if len(row) != 4:
                 # ignore header and footer lines
                 continue
-
             try:
                 user_id = int(row[0])
                 date = datetime.strptime(row[1], '%Y-%m-%d').date()
@@ -67,9 +69,42 @@ def get_data():
                 end = datetime.strptime(row[3], '%H:%M:%S').time()
             except (ValueError, TypeError):
                 log.debug('Problem with line %d: ', i, exc_info=True)
-
             data.setdefault(user_id, {})[date] = {'start': start, 'end': end}
     return data
+
+
+def xml_data_parser():
+    """
+    Parse data from xml file.
+    """
+    with open(app.config['XML_DATA'], 'r') as users:
+        tree = etree.parse(users)
+        users = tree.find('users')
+        server = tree.find('server')
+        host = server.find('host').text
+        protocol = server.find('protocol').text
+        data = {
+            int(user.get('id')): {
+                'avatar': '{protocol}://{host}{user}'.format(
+                    protocol=protocol,
+                    host=host,
+                    user=user.find('avatar').text
+                ),
+                'name': user.find('name').text
+            }
+            for user in users.findall('user')
+        }
+    return data
+
+
+def xml_update_data():
+    """
+    Update data from xml file.
+    """
+    with open(app.config['XML_DATA'], 'w') as file:
+        response = urllib2.urlopen(app.config['UPDATE_XML_DATA'])
+        html = response.read()
+        file.write(html)
 
 
 def group_by_weekday(items):
