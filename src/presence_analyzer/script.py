@@ -6,6 +6,8 @@ import os
 import sys
 from functools import partial
 
+from utils import xml_update_data
+
 import paste.script.command
 import werkzeug.script
 
@@ -77,6 +79,13 @@ def _serve(action, debug=False, dry_run=False):
     # Run the 'paster' command
     paste.script.command.run()
 
+# bin/xml_update
+def xml_update_data():
+    """
+    Update data from xml file.
+    """
+    make_app()
+    xml_update_data()
 
 # bin/flask-ctl ...
 def run():

@@ -4,16 +4,56 @@ Helper functions used in views.
 """
 
 import csv
-from json import dumps
-from functools import wraps
+import logging
+import os
+import threading
+import time
+import urllib2
+
 from datetime import datetime
+from functools import wraps
+from json import dumps
 
 from flask import Response
+from lxml import etree
 
 from main import app
 
-import logging
+
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
+CACHE = {}
+
+
+def lock(function):
+    """
+    Lock function decorator.
+    """
+    locked = threading.Lock()
+    @wraps(function)
+    def locking(*args, **kwargs):
+        with locked:
+            result = function(*args, **kwargs)
+        return result
+    return locking
+
+
+def cache(cache_time):
+    """
+    Cache function decorator with cache time as argument.
+    """
+    def _cache(function):
+        def __cache(*args, **kwargs):
+            name = function.__name__
+            if name in CACHE:
+                if CACHE[name]['time'] < (time.time()) + cache_time:
+                    return CACHE[name]['data']
+            CACHE[name] = {
+                'data': function(*args, **kwargs),
+                'time': time.time()
+            }
+            return CACHE[name]['data']
+        return __cache
+    return _cache
 
 
 def jsonify(function):
@@ -32,6 +72,8 @@ def jsonify(function):
     return inner
 
 
+@lock
+@cache(600)
 def get_data():
     """
     Extracts presence data from CSV file and groups it by user_id.
@@ -57,7 +99,6 @@ def get_data():
             if len(row) != 4:
                 # ignore header and footer lines
                 continue
-
             try:
                 user_id = int(row[0])
                 date = datetime.strptime(row[1], '%Y-%m-%d').date()
@@ -65,9 +106,42 @@ def get_data():
                 end = datetime.strptime(row[3], '%H:%M:%S').time()
             except (ValueError, TypeError):
                 log.debug('Problem with line %d: ', i, exc_info=True)
-
             data.setdefault(user_id, {})[date] = {'start': start, 'end': end}
     return data
+
+
+def xml_data_parser():
+    """
+    Parse data from xml file.
+    """
+    with open(app.config['XML_DATA'], 'r') as users:
+        tree = etree.parse(users)
+        users = tree.find('users')
+        server = tree.find('server')
+        host = server.find('host').text
+        protocol = server.find('protocol').text
+        data = {
+            int(user.get('id')): {
+                'avatar': '{protocol}://{host}{user}'.format(
+                    protocol=protocol,
+                    host=host,
+                    user=user.find('avatar').text
+                ),
+                'name': user.find('name').text
+            }
+            for user in users.findall('user')
+        }
+    return data
+
+
+def xml_update_data():
+    """
+    Update data from xml file.
+    """
+    with open(app.config['XML_DATA'], 'w') as file:
+        response = urllib2.urlopen(app.config['UPDATE_XML_DATA'])
+        html = response.read()
+        file.write(html)
 
 
 def group_by_weekday(items):
@@ -118,3 +192,4 @@ def mean(items):
     Calculates arithmetic mean. Returns zero for empty lists.
     """
     return float(sum(items)) / len(items) if len(items) > 0 else 0
+

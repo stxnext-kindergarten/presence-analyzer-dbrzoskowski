@@ -31,6 +31,7 @@ setup(
     entry_points="""
     [console_scripts]
     flask-ctl = presence_analyzer.script:run
+    xml_update = presence_analyzer.script:xml_update_data
 
     [paste.app_factory]
     main = presence_analyzer.script:make_app
