@@ -3,10 +3,12 @@
 Presence analyzer unit tests.
 """
 from __future__ import unicode_literals
+
 import datetime
 import json
 import os.path
 import unittest
+from time import time
 
 import main
 import utils
@@ -66,9 +68,9 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.content_type, 'application/json')
         data = json.loads(resp.data)
         self.assertDictEqual(data[0], {
-            'name': 'Kajetan O.',
-            'user_id': 130,
-            'avatar': 'https://intranet.stxnext.pl/api/images/users/130'
+            'name': 'Kamil K.',
+            'user_id': 16,
+            'avatar': 'https://intranet.stxnext.pl/api/images/users/16'
         })
 
     def test_mean_time_weekend(self):
@@ -152,6 +154,21 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         pass
 
+    def test_cache(self):
+        """
+        Test cache decorator for get_data function.
+        """
+        CACHE = utils.CACHE
+        self.assertEqual(CACHE, {})
+        data = utils.get_data()
+        self.assertNotEqual(CACHE, {})
+        self.assertEqual(CACHE['get_data']['data'], data)
+        cache_time = CACHE['get_data']['time']
+        CACHE['get_data']['time'] = time() + 86400
+        utils.get_data()
+        self.assertNotEqual(cache_time, CACHE['get_data']['time'])
+        CACHE = {}
+
     def test_get_data(self):
         """
         Test parsing of CSV file.
@@ -214,9 +231,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         excepted_result = {
             0: {'end': [], 'start': []},
-            1: {'end': [79254, 61588],'start': [41580, 44500]},
-            2: {'end': [47188, 75988],'start': [19300, 44500]},
-            3: {'end': [79199, 86399],'start': [28169, 75599]},
+            1: {'end': [79254, 61588], 'start': [41580, 44500]},
+            2: {'end': [47188, 75988], 'start': [19300, 44500]},
+            3: {'end': [79199, 86399], 'start': [28169, 75599]},
             4: {'end': [], 'start': []},
             5: {'end': [], 'start': []},
             6: {'end': [], 'start': []}
