@@ -13,12 +13,15 @@ from jinja2.exceptions import TemplateNotFound
 
 from main import app
 from utils import (
+    date_set,
+    dates_parser,
     get_data,
     group_by_start_end,
     group_by_weekday,
     jsonify,
     mean,
     seconds_since_midnight,
+    top5_users,
     xml_data_parser
 )
 
@@ -47,16 +50,20 @@ def mainpage():
     return redirect('/presence_weekday.html')
 
 
-@app.route('/api/v1/users', methods=['GET'])
+@app.route('/api/v2/dates', methods=['GET'])
 @jsonify
-def users_view():
+def dates_view():
     """
-    Users listing for dropdown.
+    Dates listing for dropdown.
     """
-    data = get_data()
+    data = xml_data_parser()
+    dates = date_set(get_data())
     return [
-        {'user_id': i, 'name': 'User {0}'.format(str(i))}
-        for i in data.keys()
+        {'date_id': i.strftime("%d-%m-%Y"),
+            'name': i.strftime("%d-%m-%Y"),
+            'avatar': data[x]['avatar']
+        }
+        for i, x in zip(dates, data)
     ]
 
 
@@ -71,7 +78,7 @@ def xml_data_view():
         {'user_id': i,
             'name': data[i]['name'],
             'avatar': data[i]['avatar']
-        }
+         }
         for i in data
     ]
 
@@ -134,5 +141,18 @@ def presence_start_end_view(user_id):
         mean(start_end_weekdays[weekday]['end']))
         for weekday, intervals in enumerate(weekdays)
     ]
+    return result
+
+
+@app.route('/api/v2/presence_top5/<string:date_id>', methods=['GET'])
+@jsonify
+def presence_top5_view(date_id):
+    """
+    Return top5 spend time by day.
+    """
+    data = xml_data_parser()
+    result = []
+    for i in top5_users(datetime.datetime.strptime(date_id, '%d-%m-%Y').date()):
+        result.append((data[i[0]]['name'], 0, i[1]))
     return result
 
