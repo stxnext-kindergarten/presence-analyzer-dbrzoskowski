@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<intranet>
+    <server>
+        <host>intranet.stxnext.pl</host>
+        <port>443</port>
+        <protocol>https</protocol>
+    </server>
+    <users>
+        <user id="130">
+            <avatar>/api/images/users/130</avatar>
+            <name>Kajetan O.</name>
+        </user>
+        <user id="141">
+            <avatar>/api/images/users/141</avatar>
+            <name>Adam P.</name>
+        </user>
+        <user id="16">
+            <avatar>/api/images/users/16</avatar>
+            <name>Kamil K.</name>
+        </user>
+    </users>
+</intranet>
+
